@@ -1,5 +1,6 @@
 # webpack-starter
 ```
-npm install 
+npm install
 npm start
+npm build
 ```
