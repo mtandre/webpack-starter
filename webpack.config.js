@@ -1,29 +1,77 @@
-var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var webpack = require('webpack');
+var ExtractPlugin = require('extract-text-webpack-plugin');
+var production = process.env.NODE_ENV === 'production';
+
+var plugins = [
+    new ExtractPlugin('styles.css')
+];
+if (production) {
+    plugins = plugins.concat([
+        new webpack.optimize.UglifyJsPlugin({
+            mangle:   true,
+            compress: {
+                warnings: false
+            },
+        }),
+        new webpack.DefinePlugin({
+            __SERVER__:      !production,
+            __DEVELOPMENT__: !production,
+            __DEVTOOLS__:    !production,
+            'process.env':   {
+                BABEL_ENV: JSON.stringify(process.env.NODE_ENV),
+            },
+        })
+    ]);
+}
+
 module.exports = {
-    entry: "./src/index.jsx",
+    entry: "./src",
     output: {
-        filename: "./dist/bundle.js"
+        path: 'dist',
+        filename: 'bundle.js'
     },
-    devtool: "source-map",
+    devServer: {
+        inline: true,
+        contentBase: 'dist',
+        colors: true,
+        open: true
+    },
+    debug: !production,
+    devtool: production ? false : 'eval',
     module: {
+        preLoaders: [
+            {
+                test: /\.js$/,
+                loader: 'eslint',
+            }
+        ],
         loaders: [
             {
-                test : /\.jsx?/,
-                loader : 'babel'
+                test: /\.js$/,
+                exclude: /node_modules/,
+                loader: 'babel-loader?{ presets: "es2015" }'
             },
             {
-                test: /\.scss$/,
-                loader: ExtractTextPlugin.extract(["css?sourceMap", "sass?sourceMap"])
+                test:   /\.scss$/,
+                loader: ExtractPlugin.extract('style', 'css!sass'),
+            },
+            {
+                test:   /\.html$/,
+                loader: 'html',
+            },
+            {
+                test:   /\.json$/,
+                exclude: /node_modules/,
+                loader: 'json',
+            },
+            {
+                test: /\.(jpe?g|png)$/,
+                loaders: [
+                    'file?name=media/[name].[ext]',
+                    'image-webpack?{ mozjpeg: { quality: 80 }, pngquant: { quality: "75-90", speed: 2 }}'
+                ]
             }
         ]
     },
-    plugins: [
-        new ExtractTextPlugin("./dist/styles.css")
-        //,new webpack.DefinePlugin({
-        //    'process.env': {
-        //      'NODE_ENV': JSON.stringify('production')
-        //    }
-        //})
-    ]
+    plugins: plugins
 }
